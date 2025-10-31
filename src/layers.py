@@ -86,7 +86,7 @@ class SublayerConnection(nn.Module):
             dropout (float): Dropout 的概率
         """
         super().__init__()
-        self.nrom = LayerNorm(size)
+        self.norm = LayerNorm(size)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor, sublayer: nn.Module) -> torch.Tensor:

@@ -1,10 +1,15 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+
+import torchtext
+torchtext.disable_torchtext_deprecation_warning()
+
 from torchtext.data.utils import get_tokenizer
 from torchtext.vocab import build_vocab_from_iterator
 from datasets import load_dataset
 from tqdm import tqdm
+from pathlib import Path
 
 import math
 import time
@@ -30,7 +35,7 @@ EPOCHS = 10
 
 # 数据集和语言设置
 DATASET_NAME = "iwslt2017"
-LANG_PAIR = "de-en"
+LANG_PAIR = "iwslt2017-de-en"
 SRC_LANG = "de"
 TGT_LANG = "en"
 
@@ -41,12 +46,14 @@ EOS_TOKEN = "<eos>"
 UNK_TOKEN = "<unk>"
 
 # 数据预处理
-def yield_tokens(dataset_iter, tokenizer, lang):
+def yield_tokens(dataset_iter, tokenizer, lang_key):
     """
-    一个辅助函数, 用于遍历数据集并返回分词后的 token 列表
+    一个辅助函数, 用于遍历 Hugging Face datasets 对象并返回分词后的 token 列表
+    lang_key: "de" 或 "en"
     """
-    for data in dataset_iter:
-        yield tokenizer(data['translation'][lang])
+    for item in dataset_iter:
+        # 数据集的结构是 {'translation': {'de': '...', 'en': '...'}}
+        yield tokenizer(item['translation'][lang_key])
 
 def data_collate_fn(batch, tokenizers, vocabs, pad_idx, bos_idx, eos_idx, src_lang, tgt_lang):
     """
@@ -260,10 +267,9 @@ def main():
     print(f"Using device: {device}")
 
     # 加载数据
-    # 加载训练集, 用于构建词汇表
     print(f"Loading {DATASET_NAME} dataset...")
-    dataset_train = load_dataset(DATASET_NAME, LANG_PAIR, split='train')
-    dataset_val = load_dataset(DATASET_NAME, LANG_PAIR, split='validation')
+    dataset_train = load_dataset(DATASET_NAME, LANG_PAIR, split='train', trust_remote_code=True)
+    dataset_val = load_dataset(DATASET_NAME, LANG_PAIR, split='validation', trust_remote_code=True)
 
     # 构建分词器
     print("Loading tokenizers...")
@@ -283,8 +289,6 @@ def main():
     pad_idx = special_tokens.index(PAD_TOKEN)
     bos_idx = special_tokens.index(BOS_TOKEN)
     eos_idx = special_tokens.index(EOS_TOKEN)
-
-    print(f"Vocab sizes: SRC={len(src_vocab)}, TGT={len(tgt_vocab)}")
 
     # 创建源语言词汇表
     src_vocab = build_vocab_from_iterator(
