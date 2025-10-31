@@ -1,0 +1,10 @@
+# requirements.txt
+
+numpy==1.26.4
+torch==2.3.1+cu118
+torchvision==0.18.1+cu118
+torchaudio==2.3.1+cu118
+torchtext==0.18.0
+datasets
+matplotlib
+tqdm
