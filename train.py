@@ -11,6 +11,7 @@ from datasets import load_dataset
 from tqdm import tqdm
 from pathlib import Path
 
+import os
 import math
 import time
 import argparse
@@ -261,6 +262,22 @@ def main():
     set_seed(args.seed)
 
     print("Starting Transformer training process...")
+
+    # 创建唯一的输出路径
+    run_timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+    # 定义所有输出文件夹
+    output_dir = "training_outputs"
+    log_dir = os.path.join(output_dir, "logs")
+    model_dir = os.path.join(output_dir, "models")
+
+    # 创建这些文件夹 (如果它们不存在)
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(model_dir, exist_ok=True)
+
+    # 创建本次运行的唯一文件名
+    log_filename = os.path.join(log_dir, f"training_log_{run_timestamp}.txt")
+    model_save_path = os.path.join(model_dir, f"transformer_model_{run_timestamp}.pt")
+    vocab_save_path = os.path.join(model_dir, f"vocabs_{run_timestamp}.pt")
     
     # 检查是否有 GPU
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -369,6 +386,26 @@ def main():
         model.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.98), eps=1e-9
     )
 
+    # --- 新增：写入超参数到日志 ---
+    print(f"Writing log to: {log_filename}")
+    with open(log_filename, "w", encoding="utf-8") as f:
+        f.write(f"--- Training Log: {run_timestamp} ---\n")
+        f.write(f"Seed: {args.seed}\n")
+        f.write(f"Device: {device}\n\n")
+        f.write("--- Hyperparameters ---\n")
+        f.write(f"d_model: {D_MODEL}\n")
+        f.write(f"Layers (N): {N_LAYERS}\n")
+        f.write(f"Heads (h): {H}\n")
+        f.write(f"d_ff: {D_FF}\n")
+        f.write(f"Dropout: {DROPOUT}\n")
+        f.write(f"Epochs: {EPOCHS}\n")
+        f.write(f"Batch Size: {BATCH_SIZE}\n")
+        f.write(f"Learning Rate: {LEARNING_RATE}\n\n")
+        f.write("--- Vocab Sizes ---\n")
+        f.write(f"SRC Vocab: {src_vocab_size}\n")
+        f.write(f"TGT Vocab: {tgt_vocab_size}\n\n")
+        f.write("--- Training Starts ---\n")
+
     # 运行训练循环
     print("Starting training loop...")
     
@@ -388,10 +425,18 @@ def main():
         print(f"Epoch: {epoch:02} | Time: {epoch_mins:.0f}m {epoch_secs:.0f}s")
         print(f"\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}")
         print(f"\t Val. Loss: {val_loss:.3f} |  Val. PPL: {math.exp(val_loss):7.3f}")
+
+        with open(log_filename, "a", encoding="utf-8") as f:
+            f.write(f"\nEpoch: {epoch:02} | Time: {epoch_mins:.0f}m {epoch_secs:.0f}s\n")
+            f.write(f"\tTrain Loss: {train_loss:.3f} | Train PPL: {math.exp(train_loss):7.3f}\n")
+            f.write(f"\t Val. Loss: {val_loss:.3f} |  Val. PPL: {math.exp(val_loss):7.3f}\n")
         
-    # 保存模型 
-    torch.save(model.state_dict(), 'transformer_iwslt.pt')
-    print("Model saved.")
+    # 保存模型和词汇表 
+    print("Saving model and vocabs...")
+    torch.save(model.state_dict(), model_save_path)
+    torch.save(vocabs, vocab_save_path)
+    print(f"Model saved to: {model_save_path}")
+    print(f"Vocabs saved to: {vocab_save_path}")
 
 if __name__ == "__main__":
     main()

@@ -1,0 +1,16 @@
+# Python 自动生成的缓存
+__pycache__/
+*.pyc
+*.egg-info/
+
+# 忽略所有数据文件
+# (我们不应该把 .zip 或 .xml 上传到 Git)
+data/
+iwslt2017/
+
+# 忽略所有训练产物
+# (模型 .pt 和日志 .txt 应该只保存在本地)
+training_outputs/
+
+# VSCode 内部设置
+.vscode/
